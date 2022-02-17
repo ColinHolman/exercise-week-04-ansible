@@ -1,0 +1,124 @@
+---
+- name:  Switch 1 Config
+  hosts: rtr1
+  gather_facts: no
+
+  tasks:
+    - name: Switch 1 Config Info
+      cisco.ios.ios_facts:
+        gather_subset: all
+
+    - name: Hostname Config
+      cisco.ios.ios_config:
+        lines:
+          - hostname WCH-SW-1
+          - ntp server 8.8.8.8
+
+    - name: IP Address Config
+      cisco.ios.ios_config:
+        lines:
+        - description test interface
+        - ip address 10.10.10.1 255.255.255.252
+        - no shutdown
+        parents: interface GigabitEthernet 2
+
+    - name: Login Banner Config
+      cisco.ios.ios_banner:
+        banner: login
+        text: |
+          This is my login banner
+          for Switch 1
+        state: present
+
+    - name: Logging Config
+      cisco.ios.ios_logging:
+        dest: host
+        name: 192.168.18.11
+        state: present
+
+
+- name:  Switch 2 Config
+  hosts: rtr2
+  gather_facts: no
+
+  tasks:
+    - name: Switch 2 Config Info
+      cisco.ios.ios_facts:
+        gather_subset: all
+
+    - name: Hostname Config
+      cisco.ios.ios_config:
+        commands:
+          - hostname WCH-SW-2
+
+    - name: Login Banner Config
+      cisco.ios.ios_banner:
+        banner: login
+        text: |
+          This is my login banner
+          for Switch 2
+        state: present
+
+    - name: Logging Config
+      cisco.ios.ios_logging:
+        dest: host
+        name: 192.168.18.12
+        state: present
+
+    - name: IP Address Config
+      cisco.ios.ios_config:
+        lines:
+        - description test interface
+        - ip address 10.10.10.2 255.255.255.252
+        - no shutdown
+        parents: interface GigabitEthernet 2
+
+- name:  Both Switch Config
+  hosts: cisco
+  gather_facts: no
+
+  tasks:
+    - name: Name Servers Config
+      cisco.ios.ios_system:
+        name_servers:
+        - 8.8.8.8
+        - 8.8.4.4
+
+    - name: NTP Config
+      cisco.ios.ios_config:
+        lines:
+          - ntp server 8.8.8.8
+
+    - name: OSPF Config
+      cisco.ios.ios_ospf_interfaces:
+        config:
+          - name: GigabitEthernet 2
+            address_family:
+              - afi: ipv4
+                process:
+                  id: 1
+                  area_id: 0
+                adjacency: tre
+                bfd: true
+                cost:
+                  interface_cost: 5
+                dead_interval:
+                  time: 5
+                demand_circuit:
+                  ignore: true
+                network:
+                  broadcast: true
+                priority: 25
+                resync_timeout: 10
+                shutdown: true
+                ttl_security:
+                  hops: 50
+        state: merged
+
+    - name: SNMP Config
+      ios_config:
+        lines:
+          - snmp-server community public RO
+          - snmp-server contact holmanw@sheridancollege.ca
+          - snmp-server host 192.168.18.55 public
+          - snmp-server enable traps
